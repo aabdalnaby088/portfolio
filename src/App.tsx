@@ -4,6 +4,7 @@ import {
   faq, heroBlurb, inventory, links, marquee, projects, releases, roles, stickers,
 } from './data'
 import type { Copy } from './data'
+import BugHunt from './BugHunt'
 
 // Recruiter Mode swaps every joke for its serious twin.
 const ModeContext = createContext(false)
@@ -64,6 +65,20 @@ export default function App() {
   const toast = useToast()
   useReveal()
 
+  // Bug hunt: the squash count survives reloads; the game sits out Recruiter Mode.
+  const [bugCount, setBugCount] = useState(() => {
+    try { return Number(localStorage.getItem('bugs-relocated')) || 0 } catch { return 0 }
+  })
+  const [swarm, setSwarm] = useState(0)
+  const [calm] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const squashBug = () => {
+    const n = bugCount + 1
+    setBugCount(n)
+    try { localStorage.setItem('bugs-relocated', String(n)) } catch { /* storage blocked */ }
+    const milestone = BUG_MILESTONES[n]
+    if (milestone) toast.show(milestone)
+  }
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     try { localStorage.setItem('theme', theme) } catch { /* storage blocked */ }
@@ -71,7 +86,8 @@ export default function App() {
 
   useKonami(() => {
     setParty(p => !p)
-    toast.show('Cheat code accepted. Ahmed gains +10 charisma.')
+    setSwarm(n => n + 1)
+    toast.show('Cheat code accepted. Releasing the backlog.')
   })
 
   useEffect(() => {
@@ -90,8 +106,9 @@ export default function App() {
           serious={serious}
           onSerious={() => {
             setSerious(s => !s)
-            toast.show(serious ? 'Fun restored. Jokes back online.' : 'Recruiter Mode on. Jokes safely stored.')
+            toast.show(serious ? 'Fun restored. Jokes (and bugs) back online.' : 'Recruiter Mode on. Jokes stored, bugs hidden. Just like prod.')
           }}
+          bugCount={!serious && !calm ? bugCount : null}
           theme={theme}
           onTheme={() => setTheme(t => (t === 'light' ? 'dark' : 'light'))}
         />
@@ -105,15 +122,31 @@ export default function App() {
           <Contact onCopy={toast.show} />
         </main>
         <Footer />
-        <div className={`toast ${toast.msg ? 'show' : ''}`} role="status" aria-live="polite">
-          {toast.msg}
-        </div>
+      </div>
+      {/* outside .app: party mode's filter would break position: fixed */}
+      {!serious && !calm && <BugHunt swarm={swarm} onSquash={squashBug} />}
+      <div className={`toast ${toast.msg ? 'show' : ''}`} role="status" aria-live="polite">
+        {toast.msg}
       </div>
     </ModeContext.Provider>
   )
 }
 
-function Nav(props: { serious: boolean; onSerious: () => void; theme: string; onTheme: () => void }) {
+const BUG_MILESTONES: Record<number, string> = {
+  1: 'Bug relocated. It lives in prod now.',
+  5: 'Five bugs down. QA would be proud.',
+  10: 'Achievement unlocked: Senior Bug Relocator 🏆',
+  25: 'Honestly, you should apply for my job.',
+  50: 'Fifty?! Please go outside. Or email me.',
+}
+
+function Nav(props: {
+  serious: boolean
+  onSerious: () => void
+  bugCount: number | null
+  theme: string
+  onTheme: () => void
+}) {
   return (
     <header className="nav">
       <a href="#top" className="logo" aria-label="Back to top">
@@ -127,6 +160,16 @@ function Nav(props: { serious: boolean; onSerious: () => void; theme: string; on
         <a href="#contact">Contact</a>
       </nav>
       <div className="nav-actions">
+        {props.bugCount !== null && (
+          <span
+            className={`bug-counter ${props.bugCount >= 10 ? 'gold' : ''}`}
+            title="Bugs relocated. Click the bugs crawling around the page."
+          >
+            <span aria-hidden="true">{props.bugCount >= 10 ? '🏆' : '🐛'}</span>
+            <span key={props.bugCount} className="bug-count">{props.bugCount}</span>
+            <span className="bug-counter-label"> relocated</span>
+          </span>
+        )}
         <button
           className={`switch ${props.serious ? 'on' : ''}`}
           role="switch"
@@ -229,7 +272,7 @@ function Hero() {
           </a>
         </div>
         <p className="hint" aria-hidden="true">
-          {t({ fun: 'psst: the stickers are draggable. go on, make a mess.', serious: 'Based in Cairo, Egypt. Working with UK clients.' })}
+          {t({ fun: 'psst: stickers are draggable. bugs are squashable. go on, make a mess.', serious: 'Based in Cairo, Egypt. Working with UK clients.' })}
         </p>
       </div>
     </section>
@@ -239,13 +282,15 @@ function Hero() {
 function Marquee() {
   const row = [...marquee, ...marquee]
   return (
-    <div className="marquee" aria-label="Tech stack">
-      <div className="marquee-track">
-        {row.map((m, i) => (
-          <span key={i} className="marquee-item" aria-hidden={i >= marquee.length}>
-            {m} <span className="star">✦</span>
-          </span>
-        ))}
+    <div className="marquee-wrap">
+      <div className="marquee" aria-label="Tech stack">
+        <div className="marquee-track">
+          {row.map((m, i) => (
+            <span key={i} className="marquee-item" aria-hidden={i >= marquee.length}>
+              {m} <span className="star">✦</span>
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   )

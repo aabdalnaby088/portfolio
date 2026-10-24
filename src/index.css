@@ -32,7 +32,7 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 90px; overflow-x: clip; }
+html { scroll-behavior: smooth; scroll-padding-top: 90px; }
 body {
   margin: 0;
   background: var(--bg);
@@ -41,7 +41,6 @@ body {
   font-size: 17px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
   transition: background 0.3s, color 0.3s;
 }
 /* subtle dotted paper */
@@ -228,6 +227,7 @@ a { color: inherit; }
 .sticker-orange { background: var(--orange); }
 
 /* ---------- marquee ---------- */
+.marquee-wrap { overflow: hidden; padding: 24px 0; margin: -24px 0; }
 .marquee {
   overflow: hidden;
   background: var(--ink); color: var(--bg);
@@ -465,6 +465,56 @@ a { color: inherit; }
 }
 .toast.show { transform: translate(-50%, 0); visibility: visible; }
 
+/* ---------- bug hunt ---------- */
+.bug-layer { position: fixed; inset: 0; z-index: 60; pointer-events: none; overflow: hidden; }
+.bug {
+  position: absolute; left: 0; top: 0;
+  width: 38px; height: 38px; padding: 0;
+  background: none; border: 0;
+  pointer-events: auto; cursor: crosshair;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+.bug svg { display: block; overflow: visible; }
+.bug .legs { transform-origin: 20px 24px; animation: scuttle var(--gait, 0.22s) ease-in-out infinite alternate; }
+.bug .legs-b { animation-direction: alternate-reverse; }
+@keyframes scuttle { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+.bug.squashed { pointer-events: none; }
+.bug.squashed svg { animation: flatten 0.35s ease-in forwards; }
+.bug.squashed .legs { animation: none; }
+@keyframes flatten { to { transform: scale(1.4, 0.15); opacity: 0; } }
+
+.splat { position: absolute; transform: translate(-50%, -50%); }
+.splat svg { display: block; animation: splat 1.6s ease-out forwards; }
+@keyframes splat {
+  0% { transform: scale(0.2) rotate(0deg); }
+  15% { transform: scale(1.1) rotate(20deg); }
+  25% { transform: scale(1) rotate(15deg); }
+  75% { opacity: 1; }
+  100% { transform: scale(0.9) rotate(15deg); opacity: 0; }
+}
+.splat-score {
+  position: absolute; left: 50%; top: 0;
+  font: 800 20px var(--display); color: var(--ink);
+  text-shadow: 2px 2px 0 var(--bg);
+  animation: score-up 1s ease-out forwards;
+}
+@keyframes score-up {
+  from { transform: translate(-50%, 0); opacity: 1; }
+  to { transform: translate(-50%, -50px); opacity: 0; }
+}
+
+.bug-counter {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--line); border-radius: 999px;
+  background: var(--bg-2);
+  font: 600 13px var(--mono);
+  white-space: nowrap;
+}
+.bug-counter.gold { background: var(--lime); color: #141414; }
+.bug-count { display: inline-block; font-weight: 700; animation: tick-in 0.4s cubic-bezier(.3,1.8,.5,1); }
+
 /* ---------- konami party ---------- */
 .party { animation: party 3s linear infinite; }
 .party .wobble { animation: bounce 0.6s ease-in-out infinite alternate; }
@@ -481,6 +531,8 @@ a { color: inherit; }
 @media (max-width: 640px) {
   body { font-size: 16px; }
   .switch-label { display: none; }
+  .bug-counter-label { display: none; }
+  .bug-counter { padding: 5px 9px; }
   .logo-text { font-size: 16px; }
   .hero { padding-top: 40px; }
   .hero-title .outline { text-shadow: 2px 2px 0 var(--line), 4px 4px 0 var(--line); }
